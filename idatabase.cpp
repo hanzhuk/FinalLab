@@ -14,6 +14,60 @@ void IDatabase::ininDatabase()
 
 }
 
+bool IDatabase::initDoctorModel()
+{
+    doctorTabModel = new QSqlTableModel(this, database);
+    doctorTabModel->setTable("doctor");
+    doctorTabModel->setEditStrategy(QSqlTableModel::OnManualSubmit);
+    doctorTabModel->setSort(doctorTabModel->fieldIndex("NAME"), Qt::AscendingOrder);
+    if (!doctorTabModel->select())
+        return false;
+
+    theDoctorSelection = new QItemSelectionModel(doctorTabModel);
+    return true;
+}
+
+bool IDatabase::initDepartmentModel()
+{
+    departmentTabModel = new QSqlTableModel(this, database);
+    departmentTabModel->setTable("department");
+    departmentTabModel->setEditStrategy(QSqlTableModel::OnManualSubmit);
+    departmentTabModel->setSort(departmentTabModel->fieldIndex("DEPT_NAME"), Qt::AscendingOrder);
+    if (!departmentTabModel->select())
+        return false;
+
+    theDepartmentSelection = new QItemSelectionModel(departmentTabModel);
+    return true;
+}
+
+bool IDatabase::initMedicineModel()
+{
+    medicineTabModel = new QSqlTableModel(this, database);
+    medicineTabModel->setTable("medicine");
+    medicineTabModel->setEditStrategy(QSqlTableModel::OnManualSubmit);
+    medicineTabModel->setSort(medicineTabModel->fieldIndex("MED_NAME"), Qt::AscendingOrder);
+    if (!medicineTabModel->select())
+        return false;
+
+    theMedicineSelection = new QItemSelectionModel(medicineTabModel);
+    return true;
+}
+
+bool IDatabase::initMedicalRecordModel()
+{
+
+    recordTabModel = new QSqlQueryModel(this);
+    updateRecordView();
+    return true;
+}
+
+bool IDatabase::initAppointmentModel()
+{
+    appointmentTabModel = new QSqlQueryModel(this);
+    updateAppointmentView();
+    return true;
+}
+
 bool IDatabase::initPatientModel()
 {
     patientTabModel = new QSqlTableModel(this, database);
@@ -76,7 +130,7 @@ void IDatabase::revertPatientEdit()
 
 QString IDatabase::userLogin(QString userName, QString password)
 {
- //   return "loginOk";
+    //   return "loginOk";
     QSqlQuery query;
     query.prepare("select username, password from user where username = :USER");
     query.bindValue(":USER", userName);
