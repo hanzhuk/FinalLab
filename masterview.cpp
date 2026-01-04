@@ -8,12 +8,18 @@ MasterView::MasterView(QWidget *parent)
     , ui(new Ui::MasterView)
 {
     ui->setupUi(this);
-
     this->setWindowFlag(Qt::FramelessWindowHint);
 
-    goLoginView();
+    // 初始化所有数据模型
+    IDatabase &db = IDatabase::getInstance();
+    db.initPatientModel();
+    db.initDoctorModel();
+    db.initDepartmentModel();
+    db.initMedicineModel();
+    db.initMedicalRecordModel();
+    db.initAppointmentModel();
 
-    IDatabase::getInstance();
+    goLoginView();
 }
 
 MasterView::~MasterView()
