@@ -27,6 +27,9 @@ signals:
     void goDepartmentView();
     void goDoctorView();
     void goPatientView();
+    void goMedicineView();
+    void goMedicalRecordView();
+    void goAppointmentView();
 
 private:
     Ui::WelcomeView *ui;

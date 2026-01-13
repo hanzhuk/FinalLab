@@ -28,6 +28,7 @@ void WelcomeView::on_btDoctor_clicked()
 }
 
 
+
 void WelcomeView::on_btPatient_clicked()
 {
     emit goPatientView();
