@@ -76,6 +76,12 @@ public:
     QSqlQueryModel *appointmentTabModel = nullptr;
     QItemSelectionModel *theAppointmentSelection = nullptr;
 
+
+    QJsonObject getPatientStatistics(const QDate &start, const QDate &end);
+    QJsonObject getMedicineWarningStatistics();
+    QJsonObject getDoctorWorkloadStatistics(const QDate &start, const QDate &end);
+    QJsonObject getFinancialStatistics(const QDate &start, const QDate &end);
+
 signals:
     void patientDataChanged();
     void doctorDataChanged();

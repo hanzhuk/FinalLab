@@ -444,3 +444,74 @@ IDatabase::~IDatabase()
         database.close();
     }
 }
+
+// 在 idatabase.cpp 末尾添加实现
+
+QJsonObject IDatabase::getPatientStatistics(const QDate &start, const QDate &end)
+{
+    QJsonObject result;
+    QSqlQuery query(database);
+
+    query.prepare("SELECT COUNT(*) as total FROM patient WHERE CREATEDTIMESTAMP BETWEEN :start AND :end");
+    query.bindValue(":start", start.toString("yyyy-MM-dd"));
+    query.bindValue(":end", end.toString("yyyy-MM-dd"));
+
+    if (query.exec() && query.next()) {
+        result["totalPatients"] = query.value("total").toInt();
+    }
+
+    return result;
+}
+
+QJsonObject IDatabase::getMedicineWarningStatistics()
+{
+    QJsonObject result;
+    QSqlQuery query(database);
+
+    query.prepare("SELECT COUNT(*) as lowStock FROM medicine WHERE STOCK < 100");
+    if (query.exec() && query.next()) {
+        result["lowStockCount"] = query.value("lowStock").toInt();
+    }
+
+    query.prepare("SELECT COUNT(*) as nearExpiry FROM medicine WHERE EXPIRY_DATE <= date('now', '+30 days')");
+    if (query.exec() && query.next()) {
+        result["nearExpiryCount"] = query.value("nearExpiry").toInt();
+    }
+
+    return result;
+}
+
+QJsonObject IDatabase::getDoctorWorkloadStatistics(const QDate &start, const QDate &end)
+{
+    QJsonObject result;
+    QSqlQuery query(database);
+
+    query.prepare("SELECT COUNT(*) as total FROM medical_record WHERE VISIT_DATE BETWEEN :start AND :end");
+    query.bindValue(":start", start.toString("yyyy-MM-dd"));
+    query.bindValue(":end", end.toString("yyyy-MM-dd"));
+
+    if (query.exec() && query.next()) {
+        result["totalRecords"] = query.value("total").toInt();
+    }
+
+    return result;
+}
+
+QJsonObject IDatabase::getFinancialStatistics(const QDate &start, const QDate &end)
+{
+    QJsonObject result;
+    QSqlQuery query(database);
+
+    // 简化的财务统计
+    query.prepare("SELECT SUM(PRICE) as revenue FROM medicine WHERE ID IN ("
+                  "SELECT MEDICINE_ID FROM prescription WHERE RECORD_ID IN ("
+                  "SELECT ID FROM medical_record WHERE VISIT_DATE BETWEEN :start AND :end))");
+    query.bindValue(":start", start.toString("yyyy-MM-dd"));
+    query.bindValue(":end", end.toString("yyyy-MM-dd"));
+
+    if (query.exec() && query.next()) {
+        result["totalRevenue"] = query.value("revenue").toDouble();
+    }
+
+    return result;
+}
