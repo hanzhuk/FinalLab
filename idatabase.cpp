@@ -7,6 +7,9 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 
+
+
+
 IDatabase::IDatabase(QObject *parent) : QObject{parent}
 {
     ininDatabase();

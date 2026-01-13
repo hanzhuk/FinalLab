@@ -1,6 +1,7 @@
 #include "medicalrecordview.h"
 #include "ui_medicalrecordview.h"
 #include "idatabase.h"
+#include <QMessageBox>
 
 MedicalRecordView::MedicalRecordView(QWidget *parent)
     : QWidget(parent)
