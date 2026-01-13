@@ -24,6 +24,7 @@ SOURCES += \
     medicineview.cpp \
     patienteditview.cpp \
     patientview.cpp \
+    statisticsthread.cpp \
     welcomeview.cpp
 
 HEADERS += \
@@ -40,6 +41,7 @@ HEADERS += \
     medicineview.h \
     patienteditview.h \
     patientview.h \
+    statisticsthread.h \
     welcomeview.h
 
 FORMS += \
