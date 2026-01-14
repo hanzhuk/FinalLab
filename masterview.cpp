@@ -35,7 +35,7 @@ MasterView::MasterView(QWidget *parent)
     , networkManager(new NetworkManager(this))
 {
     ui->setupUi(this);
-    this->setWindowFlag(Qt::FramelessWindowHint);
+    //this->setWindowFlag(Qt::FramelessWindowHint);
 
     // 连接统计线程信号
     connect(statisticsThread, &StatisticsThread::statisticsCompleted,
@@ -163,6 +163,15 @@ void MasterView::goMedicalRecordView()
     qDebug() << "goMedicalRecordView";
     medicalRecordView = new MedicalRecordView(this);
     pushWidgetToStackView(medicalRecordView);
+    connect(medicalRecordView, SIGNAL(goMedicalRecordEditView(int)), this, SLOT(goMedicalRecordEditView(int)));
+}
+
+void MasterView::goMedicalRecordEditView(int rowNo)
+{
+    qDebug() << "goMedicalRecordEditView";
+    medicalRecordEditView = new MedicalRecordEditView(this, rowNo);
+    pushWidgetToStackView(medicalRecordEditView);
+    connect(medicalRecordEditView, SIGNAL(goPreviousView()), this, SLOT(goPreviousView()));
 }
 
 void MasterView::goAppointmentView()

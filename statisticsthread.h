@@ -5,6 +5,7 @@
 #include <QThread>
 #include <QJsonObject>
 #include <QJsonArray>
+#include <QSqlDatabase>
 
 class StatisticsThread : public QThread
 {
@@ -29,10 +30,10 @@ private:
     QDate m_startDate;
     QDate m_endDate;
 
-    QJsonObject generatePatientReport();
-    QJsonObject generateMedicineStockReport();
-    QJsonObject generateDoctorWorkloadReport();
-    QJsonObject generateFinancialReport();
+    QJsonObject generatePatientReport(QSqlDatabase &db);
+    QJsonObject generateMedicineStockReport(QSqlDatabase &db);
+    QJsonObject generateDoctorWorkloadReport(QSqlDatabase &db);
+    QJsonObject generateFinancialReport(QSqlDatabase &db);
 };
 
 #endif // STATISTICSTHREAD_H

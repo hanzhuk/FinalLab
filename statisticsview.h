@@ -3,6 +3,7 @@
 
 #include <QWidget>
 #include <QJsonObject>
+#include <QDate>
 
 namespace Ui {
 class StatisticsView;
@@ -16,23 +17,22 @@ public:
     explicit StatisticsView(QWidget *parent = nullptr);
     ~StatisticsView();
 
-public slots:
     void displayReport(QJsonObject report);
     void showError(QString error);
+
+signals:
+    void generateReport(QString type, QDate start, QDate end);
 
 private slots:
     void on_btGenerate_clicked();
     void on_btExport_clicked();
 
-signals:
-    void generateReport(QString type, QDate start, QDate end);
-
 private:
-    void setupChart(const QJsonObject &data);
-    void setupTable(const QJsonObject &data);
-
     Ui::StatisticsView *ui;
     QJsonObject m_currentReport;
+
+    void setupChart(const QJsonObject &data);
+    void setupTable(const QJsonObject &data);
 };
 
 #endif // STATISTICSVIEW_H

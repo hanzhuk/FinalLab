@@ -3,13 +3,13 @@
 #include "idatabase.h"
 #include <QMessageBox>
 #include <QLabel>
-#include <QTimer>  // 添加 QTimer 头文件
 
 AppointmentView::AppointmentView(QWidget *parent)
     : QWidget(parent)
     , ui(new Ui::AppointmentView)
     , m_isInitialized(false)
     , m_initTimer(new QTimer(this))
+    , m_loadingLabel(nullptr)
 {
     ui->setupUi(this);
 
@@ -18,13 +18,22 @@ AppointmentView::AppointmentView(QWidget *parent)
     ui->tableView->setEditTriggers(QAbstractItemView::NoEditTriggers);
     ui->tableView->setAlternatingRowColors(true);
 
-    // 初始化延迟加载定时器
+    m_loadingLabel = new QLabel("正在加载预约数据...", this);
+    m_loadingLabel->setAlignment(Qt::AlignCenter);
+    m_loadingLabel->setStyleSheet("font-size: 18px; color: #4A90E2; font-weight: bold;");
+    m_loadingLabel->setVisible(true);
+
+    ui->tableView->setVisible(false);
+
     m_initTimer->setSingleShot(true);
     m_initTimer->setInterval(100);
-    connect(m_initTimer, &QTimer::timeout, this, &AppointmentView::delayedInit);
+    connect(m_initTimer, &QTimer::timeout, this, &AppointmentView::delayedInit);  // ✅ 正确
+
+    connect(&IDatabase::getInstance(), &IDatabase::appointmentLoaded,
+            this, &AppointmentView::onDataLoaded);
 }
 
-AppointmentView::~AppointmentView()  // 添加析构函数实现
+AppointmentView::~AppointmentView()
 {
     delete ui;
 }
@@ -32,30 +41,46 @@ AppointmentView::~AppointmentView()  // 添加析构函数实现
 void AppointmentView::showEvent(QShowEvent *event)
 {
     QWidget::showEvent(event);
-
-    // 延迟加载数据
     if (!m_isInitialized) {
         m_initTimer->start();
     }
 }
 
-void AppointmentView::delayedInit()
+void AppointmentView::delayedInit()  // ✅ 修复 3
 {
-    // 使用 QTimer 异步加载（不阻塞UI线程）
-    QTimer::singleShot(50, [this]() {
-        IDatabase &iDatabase = IDatabase::getInstance();
-        if (iDatabase.initAppointmentModel()) {
-            ui->tableView->setModel(iDatabase.appointmentTabModel);
-            ui->tableView->setSelectionModel(iDatabase.theAppointmentSelection);
-            m_isInitialized = true;
-        }
-    });
+    m_loadingLabel->setVisible(true);
+    ui->tableView->setVisible(false);
+    IDatabase::getInstance().loadAppointmentsAsync();
 }
 
-// 添加缺失的槽函数实现
+void AppointmentView::onDataLoaded()
+{
+    IDatabase &iDatabase = IDatabase::getInstance();
+    ui->tableView->setModel(iDatabase.appointmentTabModel);
+    ui->tableView->setSelectionModel(iDatabase.theAppointmentSelection);
+    m_loadingLabel->setVisible(false);
+    ui->tableView->setVisible(true);
+    m_isInitialized = true;
+}
+
 void AppointmentView::on_btRefresh_clicked()
 {
     if (m_isInitialized) {
         IDatabase::getInstance().updateAppointmentView();
     }
+}
+
+void AppointmentView::on_btAddAppointment_clicked()
+{
+    QMessageBox::information(this, "提示", "请在患者模块中选择医生进行预约");
+}
+
+void AppointmentView::on_btConfirm_clicked()
+{
+    QMessageBox::information(this, "提示", "预约确认功能需关联具体患者");
+}
+
+void AppointmentView::on_btCancel_clicked()
+{
+    QMessageBox::information(this, "提示", "预约取消功能需关联具体患者");
 }

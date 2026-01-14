@@ -1,6 +1,7 @@
 #include "statisticsthread.h"
 #include "idatabase.h"
 #include <QSqlQuery>
+#include <QSqlDatabase>
 #include <QSqlRecord>
 #include <QSqlError>
 #include <QDebug>
@@ -18,33 +19,51 @@ void StatisticsThread::setDateRange(const QDate &start, const QDate &end)
 
 void StatisticsThread::run()
 {
-    QJsonObject result;
-
     emit progressUpdated(10);
 
-    try {
-        if (m_reportType == "patient") {
-            result = generatePatientReport();
-        } else if (m_reportType == "medicine") {
-            result = generateMedicineStockReport();
-        } else if (m_reportType == "doctor") {
-            result = generateDoctorWorkloadReport();
-        } else if (m_reportType == "finance") {
-            result = generateFinancialReport();
-        } else {
-            emit statisticsFailed("未知的报表类型");
+    QString connectionName = QString("statistics_connection_%1")
+                                 .arg(reinterpret_cast<quintptr>(QThread::currentThreadId()));
+
+    {
+        QSqlDatabase db = QSqlDatabase::addDatabase("QSQLITE", connectionName);
+        db.setDatabaseName("G:/Qt_file/community_medical.db");
+
+        if (!db.open()) {
+            emit statisticsFailed(QString("统计线程数据库打开失败: %1").arg(db.lastError().text()));
             return;
         }
 
-        emit progressUpdated(100);
-        emit statisticsCompleted(result);
+        QJsonObject result;
 
-    } catch (const std::exception &e) {
-        emit statisticsFailed(QString("统计异常: %1").arg(e.what()));
+        try {
+            if (m_reportType == "patient") {
+                result = generatePatientReport(db);
+            } else if (m_reportType == "medicine") {
+                result = generateMedicineStockReport(db);
+            } else if (m_reportType == "doctor") {
+                result = generateDoctorWorkloadReport(db);
+            } else if (m_reportType == "finance") {
+                result = generateFinancialReport(db);
+            } else {
+                emit statisticsFailed("未知的报表类型");
+                db.close();
+                return;
+            }
+
+            emit progressUpdated(100);
+            emit statisticsCompleted(result);
+
+        } catch (const std::exception &e) {
+            emit statisticsFailed(QString("统计异常: %1").arg(e.what()));
+        }
+
+        db.close();
     }
+
+    QSqlDatabase::removeDatabase(connectionName);
 }
 
-QJsonObject StatisticsThread::generatePatientReport()
+QJsonObject StatisticsThread::generatePatientReport(QSqlDatabase &db)
 {
     QJsonObject report;
     QJsonArray dataArray;
@@ -52,7 +71,7 @@ QJsonObject StatisticsThread::generatePatientReport()
     QString startDateStr = m_startDate.toString("yyyy-MM-dd");
     QString endDateStr = m_endDate.toString("yyyy-MM-dd");
 
-    QSqlQuery query(QSqlDatabase::database());
+    QSqlQuery query(db);
     query.prepare("SELECT COUNT(*) as total, SEX, "
                   "COUNT(CASE WHEN DOB >= date('now', '-18 years') THEN 1 END) as minors, "
                   "COUNT(CASE WHEN DOB < date('now', '-60 years') THEN 1 END) as seniors "
@@ -83,12 +102,12 @@ QJsonObject StatisticsThread::generatePatientReport()
     return report;
 }
 
-QJsonObject StatisticsThread::generateMedicineStockReport()
+QJsonObject StatisticsThread::generateMedicineStockReport(QSqlDatabase &db)
 {
     QJsonObject report;
     QJsonArray dataArray;
 
-    QSqlQuery query(QSqlDatabase::database());
+    QSqlQuery query(db);
     query.prepare("SELECT MED_NAME, STOCK, EXPIRY_DATE, MED_TYPE FROM medicine "
                   "WHERE STOCK < 100 OR EXPIRY_DATE <= date('now', '+30 days')");
 
@@ -131,12 +150,12 @@ QJsonObject StatisticsThread::generateMedicineStockReport()
     return report;
 }
 
-QJsonObject StatisticsThread::generateDoctorWorkloadReport()
+QJsonObject StatisticsThread::generateDoctorWorkloadReport(QSqlDatabase &db)
 {
     QJsonObject report;
     QJsonArray dataArray;
 
-    QSqlQuery query(QSqlDatabase::database());
+    QSqlQuery query(db);
     query.prepare("SELECT d.NAME, d.TITLE, COUNT(mr.ID) as visitCount, "
                   "AVG(julianday(mr.VISIT_DATE) - julianday(mr.CREATEDTIMESTAMP)) as avgDuration "
                   "FROM doctor d "
@@ -168,12 +187,12 @@ QJsonObject StatisticsThread::generateDoctorWorkloadReport()
     return report;
 }
 
-QJsonObject StatisticsThread::generateFinancialReport()
+QJsonObject StatisticsThread::generateFinancialReport(QSqlDatabase &db)
 {
     QJsonObject report;
     QJsonArray dataArray;
 
-    QSqlQuery query(QSqlDatabase::database());
+    QSqlQuery query(db);
     query.prepare("SELECT strftime('%Y-%m', mr.VISIT_DATE) as month, "
                   "COUNT(DISTINCT mr.ID) as visitCount, "
                   "SUM(m.PRICE) as totalRevenue "

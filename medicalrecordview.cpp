@@ -1,32 +1,49 @@
 #include "medicalrecordview.h"
 #include "ui_medicalrecordview.h"
 #include "idatabase.h"
-#include <QMessageBox>
-#include <QProgressBar>
+#include "medicalrecordeditview.h"
 #include <QVBoxLayout>
 #include <QLabel>
+#include <QtConcurrent>
+#include <QTimer>
+#include <QSqlDatabase>
+#include <QDate>
+#include <QDateTime>
+#include <QMessageBox>
+#include <QFuture>
 
 MedicalRecordView::MedicalRecordView(QWidget *parent)
     : QWidget(parent)
     , ui(new Ui::MedicalRecordView)
     , m_isInitialized(false)
     , m_initTimer(new QTimer(this))
+    , m_loadingLabel(nullptr)
 {
     ui->setupUi(this);
 
-    // 基础设置，不加载数据
+    // 表格基础设置
     ui->tableView->setSelectionBehavior(QAbstractItemView::SelectRows);
     ui->tableView->setSelectionMode(QAbstractItemView::SingleSelection);
     ui->tableView->setEditTriggers(QAbstractItemView::NoEditTriggers);
     ui->tableView->setAlternatingRowColors(true);
 
-    // 设置加载提示
-    ui->tableView->setModel(nullptr);
+    // 创建加载提示标签
+    m_loadingLabel = new QLabel("正在加载数据，请稍候...", this);
+    m_loadingLabel->setAlignment(Qt::AlignCenter);
+    m_loadingLabel->setStyleSheet("font-size: 18px; color: #4A90E2; font-weight: bold;");
+    m_loadingLabel->setVisible(true);
 
-    // 连接定时器，延迟加载
+    // 隐藏表格直到数据加载完成
+    ui->tableView->setVisible(false);
+
+    // 初始化定时器
     m_initTimer->setSingleShot(true);
-    m_initTimer->setInterval(100);  // 延迟100ms
-    connect(m_initTimer, &QTimer::timeout, this, &MedicalRecordView::delayedInit);
+    m_initTimer->setInterval(100);
+    connect(m_initTimer, &QTimer::timeout, this, &MedicalRecordView::delayedInit);  // ✅ 修复 1
+
+    // 连接数据库信号
+    connect(&IDatabase::getInstance(), &IDatabase::medicalRecordLoaded,
+            this, &MedicalRecordView::onDataLoaded);
 }
 
 MedicalRecordView::~MedicalRecordView()
@@ -37,36 +54,37 @@ MedicalRecordView::~MedicalRecordView()
 void MedicalRecordView::showEvent(QShowEvent *event)
 {
     QWidget::showEvent(event);
-
-    // 延迟加载数据
     if (!m_isInitialized) {
         m_initTimer->start();
     }
 }
 
-void MedicalRecordView::delayedInit()
+void MedicalRecordView::delayedInit()  // ✅ 修复 2
 {
-    // 显示加载动画
-    QLabel *loadingLabel = new QLabel("正在加载数据，请稍候...", this);
-    loadingLabel->setAlignment(Qt::AlignCenter);
-    loadingLabel->setStyleSheet("font-size: 16px; color: #666;");
+    m_loadingLabel->setVisible(true);
     ui->tableView->setVisible(false);
+    IDatabase::getInstance().loadMedicalRecordsAsync();
+}
 
-    // 使用 QTimer 异步执行加载
-    QTimer::singleShot(50, [this]() {
-        IDatabase &iDatabase = IDatabase::getInstance();
-        if (iDatabase.initMedicalRecordModel()) {
-            ui->tableView->setModel(iDatabase.recordTabModel);
-            ui->tableView->setSelectionModel(iDatabase.theRecordSelection);
-        }
-
-        ui->tableView->setVisible(true);
-        m_isInitialized = true;
-    });
+void MedicalRecordView::onDataLoaded()
+{
+    IDatabase &iDatabase = IDatabase::getInstance();
+    ui->tableView->setModel(iDatabase.recordTabModel);
+    ui->tableView->setSelectionModel(iDatabase.theRecordSelection);
+    m_loadingLabel->setVisible(false);
+    ui->tableView->setVisible(true);
+    m_isInitialized = true;
 }
 
 void MedicalRecordView::on_btRefresh_clicked()
 {
-    // 刷新时重新加载
-    IDatabase::getInstance().updateRecordView();
+    if (m_isInitialized) {
+        IDatabase::getInstance().updateRecordView();
+    }
+}
+
+void MedicalRecordView::on_btAdd_clicked()
+{
+    int row = IDatabase::getInstance().addNewMedicalRecord();
+    emit goMedicalRecordEditView(row);
 }

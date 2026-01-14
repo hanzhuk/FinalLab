@@ -13,6 +13,7 @@
 #include "medicineview.h"
 #include "medicineeditview.h"
 #include "medicalrecordview.h"
+#include "medicalrecordeditview.h"
 #include "appointmentview.h"
 #include "statisticsview.h"
 #include "statisticsthread.h"
@@ -44,6 +45,7 @@ public slots:
     void goMedicineView();
     void goMedicineEditView(int rowNo);
     void goMedicalRecordView();
+    void goMedicalRecordEditView(int rowNo);
     void goAppointmentView();
     void goStatisticsView();
     void goNetworkSyncView();
@@ -77,6 +79,7 @@ private:
     MedicineView *medicineView;
     MedicineEditView *medicineEditView;
     MedicalRecordView *medicalRecordView;
+    MedicalRecordEditView *medicalRecordEditView;
     AppointmentView *appointmentView;
     StatisticsThread *statisticsThread;
     StatisticsView *statisticsView;
