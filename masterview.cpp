@@ -3,6 +3,7 @@
 #include <QDebug>
 #include "idatabase.h"
 #include <QTimer>
+#include <QMessageBox>
 
 MasterView::MasterView(QWidget *parent)
     : QWidget(parent)

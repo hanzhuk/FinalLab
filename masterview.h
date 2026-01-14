@@ -14,9 +14,9 @@
 #include "medicineeditview.h"
 #include "medicalrecordview.h"
 #include "appointmentview.h"
-#include "statisticsthread.h"
 #include "statisticsview.h"
-
+#include "statisticsthread.h"
+#include "networkmanager.h"
 
 QT_BEGIN_NAMESPACE
 namespace Ui {
@@ -45,8 +45,8 @@ public slots:
     void goMedicineEditView(int rowNo);
     void goMedicalRecordView();
     void goAppointmentView();
-    void goPreviousView();
     void goStatisticsView();
+    void goNetworkSyncView();  // 新增
 
 private slots:
     void on_btBack_clicked();
@@ -54,7 +54,10 @@ private slots:
     void on_btLogout_clicked();
     void onStatisticsCompleted(QJsonObject result);
     void onStatisticsFailed(QString error);
-    void on_btStatistics_clicked();
+    void onSyncStarted(QString operation);
+    void onSyncCompleted(QString message);
+    void onSyncFailed(QString error);
+    void onSyncProgress(int percentage);
 
 private:
     void pushWidgetToStackView(QWidget *widget);
@@ -75,6 +78,7 @@ private:
     AppointmentView *appointmentView;
     StatisticsThread *statisticsThread;
     StatisticsView *statisticsView;
+    NetworkManager *networkManager;  // 新增
 };
 
-#endif // MASTERVIEW_H
+#endif
