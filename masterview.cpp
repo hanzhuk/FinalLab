@@ -4,6 +4,7 @@
 #include "idatabase.h"
 #include <QTimer>
 #include <QMessageBox>
+#include "networkmanager.h"  // 添加网络管理器头文件
 
 MasterView::MasterView(QWidget *parent)
     : QWidget(parent)
@@ -22,6 +23,7 @@ MasterView::MasterView(QWidget *parent)
     , appointmentView(nullptr)
     , statisticsThread(new StatisticsThread(this))
     , statisticsView(nullptr)
+    , networkManager(new NetworkManager(this))  // 初始化网络管理器
 {
     ui->setupUi(this);
     this->setWindowFlag(Qt::FramelessWindowHint);
@@ -31,6 +33,16 @@ MasterView::MasterView(QWidget *parent)
             this, &MasterView::onStatisticsCompleted);
     connect(statisticsThread, &StatisticsThread::statisticsFailed,
             this, &MasterView::onStatisticsFailed);
+
+    // 连接网络管理器信号
+    connect(networkManager, &NetworkManager::syncStarted,
+            this, &MasterView::onSyncStarted);
+    connect(networkManager, &NetworkManager::syncCompleted,
+            this, &MasterView::onSyncCompleted);
+    connect(networkManager, &NetworkManager::syncFailed,
+            this, &MasterView::onSyncFailed);
+    connect(networkManager, &NetworkManager::syncProgress,
+            this, &MasterView::onSyncProgress);
 
     goLoginView();
 
@@ -44,6 +56,8 @@ MasterView::~MasterView()
         statisticsThread->quit();
         statisticsThread->wait();
     }
+
+    // 网络管理器会自动清理，无需特别处理
     delete ui;
 }
 
@@ -68,6 +82,7 @@ void MasterView::goWelcomeView()
     connect(welcomeView, SIGNAL(goMedicalRecordView()), this, SLOT(goMedicalRecordView()));
     connect(welcomeView, SIGNAL(goAppointmentView()), this, SLOT(goAppointmentView()));
     connect(welcomeView, SIGNAL(goStatisticsView()), this, SLOT(goStatisticsView()));
+    connect(welcomeView, SIGNAL(goNetworkSyncView()), this, SLOT(goNetworkSyncView()));
 }
 
 void MasterView::goPatientView()
@@ -159,9 +174,96 @@ void MasterView::goStatisticsView()
                     statisticsThread->setDateRange(start, end);
                     statisticsThread->start();
                 });
-
     }
     pushWidgetToStackView(statisticsView);
+}
+
+void MasterView::goNetworkSyncView()
+{
+    qDebug() << "goNetworkSyncView";
+
+    // 创建网络同步界面
+    QWidget *syncWidget = new QWidget(this);
+    syncWidget->setWindowTitle("网络同步");
+
+    QVBoxLayout *mainLayout = new QVBoxLayout(syncWidget);
+
+    // 标题
+    QLabel *titleLabel = new QLabel("网络同步中心", syncWidget);
+    QFont titleFont = titleLabel->font();
+    titleFont.setPointSize(16);
+    titleFont.setBold(true);
+    titleLabel->setFont(titleFont);
+    titleLabel->setAlignment(Qt::AlignCenter);
+    mainLayout->addWidget(titleLabel);
+
+    // 服务器状态
+    QGroupBox *statusGroup = new QGroupBox("服务器状态", syncWidget);
+    QVBoxLayout *statusLayout = new QVBoxLayout(statusGroup);
+    QLabel *statusLabel = new QLabel("未连接", statusGroup);
+    statusLayout->addWidget(statusLabel);
+    mainLayout->addWidget(statusGroup);
+
+    // 同步操作按钮
+    QGroupBox *syncGroup = new QGroupBox("同步操作", syncWidget);
+    QVBoxLayout *syncLayout = new QVBoxLayout(syncGroup);
+
+    QPushButton *btnMedicine = new QPushButton("🔄 同步药品数据库", syncGroup);
+    btnMedicine->setStyleSheet("QPushButton { padding: 10px; text-align: left; }");
+    syncLayout->addWidget(btnMedicine);
+
+    QPushButton *btnDiagnosis = new QPushButton("📚 同步诊断参考", syncGroup);
+    btnDiagnosis->setStyleSheet("QPushButton { padding: 10px; text-align: left; }");
+    syncLayout->addWidget(btnDiagnosis);
+
+    QPushButton *btnBackup = new QPushButton("☁️ 远程备份数据库", syncGroup);
+    btnBackup->setStyleSheet("QPushButton { padding: 10px; text-align: left; }");
+    syncLayout->addWidget(btnBackup);
+
+    QPushButton *btnCheckUpdate = new QPushButton("⬇️ 检查更新", syncGroup);
+    btnCheckUpdate->setStyleSheet("QPushButton { padding: 10px; text-align: left; }");
+    syncLayout->addWidget(btnCheckUpdate);
+
+    mainLayout->addWidget(syncGroup);
+
+    // 进度显示
+    QGroupBox *progressGroup = new QGroupBox("同步进度", syncWidget);
+    QVBoxLayout *progressLayout = new QVBoxLayout(progressGroup);
+
+    QProgressBar *progressBar = new QProgressBar(progressGroup);
+    progressBar->setRange(0, 100);
+    progressBar->setValue(0);
+    progressLayout->addWidget(progressBar);
+
+    QLabel *progressLabel = new QLabel("准备就绪", progressGroup);
+    progressLayout->addWidget(progressLabel);
+
+    mainLayout->addWidget(progressGroup);
+
+    // 连接信号
+    connect(btnMedicine, &QPushButton::clicked, networkManager, &NetworkManager::syncMedicineDatabase);
+    connect(btnDiagnosis, &QPushButton::clicked, networkManager, &NetworkManager::syncDiagnosisReference);
+    connect(btnBackup, &QPushButton::clicked, networkManager, &NetworkManager::backupDatabase);
+    connect(btnCheckUpdate, &QPushButton::clicked, networkManager, &NetworkManager::downloadUpdates);
+
+    connect(networkManager, &NetworkManager::syncProgress, progressBar, &QProgressBar::setValue);
+    connect(networkManager, &NetworkManager::syncStarted, progressLabel, [progressLabel](const QString &op) {
+        progressLabel->setText("正在操作: " + op);
+    });
+    connect(networkManager, &NetworkManager::syncCompleted, progressLabel, [progressLabel](const QString &msg) {
+        progressLabel->setText("✅ 完成: " + msg);
+    });
+    connect(networkManager, &NetworkManager::syncFailed, progressLabel, [progressLabel](const QString &err) {
+        progressLabel->setText("❌ 错误: " + err);
+    });
+
+    // 返回按钮
+    QPushButton *btnBack = new QPushButton("← 返回主菜单", syncWidget);
+    btnBack->setStyleSheet("QPushButton { padding: 10px; background-color: #f0f0f0; }");
+    connect(btnBack, &QPushButton::clicked, this, &MasterView::goPreviousView);
+    mainLayout->addWidget(btnBack);
+
+    pushWidgetToStackView(syncWidget);
 }
 
 void MasterView::onStatisticsCompleted(QJsonObject result)
@@ -176,6 +278,33 @@ void MasterView::onStatisticsFailed(QString error)
     if (statisticsView) {
         statisticsView->showError(error);
     }
+}
+
+void MasterView::onSyncStarted(QString operation)
+{
+    qDebug() << "同步开始:" << operation;
+}
+
+void MasterView::onSyncProgress(int percentage)
+{
+    qDebug() << "同步进度:" << percentage << "%";
+}
+
+void MasterView::onSyncCompleted(QString message)
+{
+    qDebug() << "同步完成:" << message;
+    QMessageBox::information(this, "同步成功", message);
+}
+
+void MasterView::onSyncFailed(QString error)
+{
+    qDebug() << "同步失败:" << error;
+    QMessageBox::critical(this, "同步失败", error);
+}
+
+void MasterView::on_btStatistics_clicked()
+{
+    goStatisticsView();
 }
 
 void MasterView::goPreviousView()
@@ -223,9 +352,4 @@ void MasterView::on_stackedWidget_currentChanged(int arg1)
 void MasterView::on_btLogout_clicked()
 {
     goPreviousView();
-}
-
-void MasterView::on_btStatistics_clicked()
-{
-    goStatisticsView();
 }

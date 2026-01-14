@@ -52,3 +52,9 @@ void WelcomeView::on_btStatistics_clicked()
 {
     emit goStatisticsView();
 }
+
+
+void WelcomeView::on_btNetworkSync_clicked()
+{
+    emit goNetworkSyncView();
+}

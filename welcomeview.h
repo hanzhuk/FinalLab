@@ -25,6 +25,7 @@ private slots:
     void on_btMedicalRecord_clicked();
     void on_btAppointment_clicked();
     void on_btStatistics_clicked();
+    void on_btNetworkSync_clicked();
 
 signals:
     void goDepartmentView();
@@ -34,6 +35,7 @@ signals:
     void goMedicalRecordView();
     void goAppointmentView();
     void goStatisticsView();
+    void goNetworkSyncView();
 
 private:
     Ui::WelcomeView *ui;
