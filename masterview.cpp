@@ -27,6 +27,8 @@ MasterView::MasterView(QWidget *parent)
     IDatabase::getInstance();
 }
 
+
+
 MasterView::~MasterView()
 {
     delete ui;

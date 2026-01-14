@@ -32,6 +32,7 @@ signals:
     void goMedicineView();
     void goMedicalRecordView();
     void goAppointmentView();
+    void goStatisticsView();
 
 private:
     Ui::WelcomeView *ui;
