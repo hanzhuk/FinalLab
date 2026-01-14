@@ -1,5 +1,5 @@
 TARGET = FinalLab
-QT       += core gui sql
+QT       += core gui sql network concurrent
 
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 

@@ -4,7 +4,16 @@
 #include "idatabase.h"
 #include <QTimer>
 #include <QMessageBox>
-#include "networkmanager.h"  // 添加网络管理器头文件
+#include "networkmanager.h"
+#include "statisticsthread.h"
+#include "statisticsview.h"
+#include <QGroupBox>
+#include <QProgressBar>
+#include <QVBoxLayout>
+#include <QHBoxLayout>
+#include <QLabel>
+#include <QPushButton>
+#include <QFileDialog>
 
 MasterView::MasterView(QWidget *parent)
     : QWidget(parent)
@@ -23,7 +32,7 @@ MasterView::MasterView(QWidget *parent)
     , appointmentView(nullptr)
     , statisticsThread(new StatisticsThread(this))
     , statisticsView(nullptr)
-    , networkManager(new NetworkManager(this))  // 初始化网络管理器
+    , networkManager(new NetworkManager(this))
 {
     ui->setupUi(this);
     this->setWindowFlag(Qt::FramelessWindowHint);
@@ -181,14 +190,11 @@ void MasterView::goStatisticsView()
 void MasterView::goNetworkSyncView()
 {
     qDebug() << "goNetworkSyncView";
-
-    // 创建网络同步界面
     QWidget *syncWidget = new QWidget(this);
     syncWidget->setWindowTitle("网络同步");
 
     QVBoxLayout *mainLayout = new QVBoxLayout(syncWidget);
 
-    // 标题
     QLabel *titleLabel = new QLabel("网络同步中心", syncWidget);
     QFont titleFont = titleLabel->font();
     titleFont.setPointSize(16);
@@ -197,14 +203,12 @@ void MasterView::goNetworkSyncView()
     titleLabel->setAlignment(Qt::AlignCenter);
     mainLayout->addWidget(titleLabel);
 
-    // 服务器状态
     QGroupBox *statusGroup = new QGroupBox("服务器状态", syncWidget);
     QVBoxLayout *statusLayout = new QVBoxLayout(statusGroup);
     QLabel *statusLabel = new QLabel("未连接", statusGroup);
     statusLayout->addWidget(statusLabel);
     mainLayout->addWidget(statusGroup);
 
-    // 同步操作按钮
     QGroupBox *syncGroup = new QGroupBox("同步操作", syncWidget);
     QVBoxLayout *syncLayout = new QVBoxLayout(syncGroup);
 
@@ -226,7 +230,6 @@ void MasterView::goNetworkSyncView()
 
     mainLayout->addWidget(syncGroup);
 
-    // 进度显示
     QGroupBox *progressGroup = new QGroupBox("同步进度", syncWidget);
     QVBoxLayout *progressLayout = new QVBoxLayout(progressGroup);
 
@@ -240,7 +243,6 @@ void MasterView::goNetworkSyncView()
 
     mainLayout->addWidget(progressGroup);
 
-    // 连接信号
     connect(btnMedicine, &QPushButton::clicked, networkManager, &NetworkManager::syncMedicineDatabase);
     connect(btnDiagnosis, &QPushButton::clicked, networkManager, &NetworkManager::syncDiagnosisReference);
     connect(btnBackup, &QPushButton::clicked, networkManager, &NetworkManager::backupDatabase);
@@ -257,7 +259,6 @@ void MasterView::goNetworkSyncView()
         progressLabel->setText("❌ 错误: " + err);
     });
 
-    // 返回按钮
     QPushButton *btnBack = new QPushButton("← 返回主菜单", syncWidget);
     btnBack->setStyleSheet("QPushButton { padding: 10px; background-color: #f0f0f0; }");
     connect(btnBack, &QPushButton::clicked, this, &MasterView::goPreviousView);

@@ -46,18 +46,20 @@ public slots:
     void goMedicalRecordView();
     void goAppointmentView();
     void goStatisticsView();
-    void goNetworkSyncView();  // 新增
+    void goNetworkSyncView();
+    void goPreviousView();  // 添加这一行
 
 private slots:
     void on_btBack_clicked();
     void on_stackedWidget_currentChanged(int arg1);
     void on_btLogout_clicked();
+    void on_btStatistics_clicked();  // 添加这一行
     void onStatisticsCompleted(QJsonObject result);
     void onStatisticsFailed(QString error);
     void onSyncStarted(QString operation);
+    void onSyncProgress(int percentage);
     void onSyncCompleted(QString message);
     void onSyncFailed(QString error);
-    void onSyncProgress(int percentage);
 
 private:
     void pushWidgetToStackView(QWidget *widget);
@@ -78,7 +80,7 @@ private:
     AppointmentView *appointmentView;
     StatisticsThread *statisticsThread;
     StatisticsView *statisticsView;
-    NetworkManager *networkManager;  // 新增
+    NetworkManager *networkManager;
 };
 
-#endif
+#endif // MASTERVIEW_H
