@@ -22,6 +22,7 @@ SOURCES += \
     medicalrecordview.cpp \
     medicineeditview.cpp \
     medicineview.cpp \
+    networkmanager.cpp \
     patienteditview.cpp \
     patientview.cpp \
     statisticsthread.cpp \
@@ -40,6 +41,7 @@ HEADERS += \
     medicalrecordview.h \
     medicineeditview.h \
     medicineview.h \
+    networkmanager.h \
     patienteditview.h \
     patientview.h \
     statisticsthread.h \
