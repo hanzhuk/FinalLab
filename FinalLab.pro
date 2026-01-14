@@ -25,6 +25,7 @@ SOURCES += \
     patienteditview.cpp \
     patientview.cpp \
     statisticsthread.cpp \
+    statisticsview.cpp \
     welcomeview.cpp
 
 HEADERS += \
@@ -42,6 +43,7 @@ HEADERS += \
     patienteditview.h \
     patientview.h \
     statisticsthread.h \
+    statisticsview.h \
     welcomeview.h
 
 FORMS += \
@@ -57,6 +59,7 @@ FORMS += \
     medicineview.ui \
     patienteditview.ui \
     patientview.ui \
+    statisticsview.ui \
     welcomeview.ui
 
 # Default rules for deployment.
