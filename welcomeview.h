@@ -24,6 +24,7 @@ private slots:
     void on_btMedicine_clicked();
     void on_btMedicalRecord_clicked();
     void on_btAppointment_clicked();
+    void on_btStatistics_clicked();
 
 signals:
     void goDepartmentView();

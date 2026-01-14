@@ -24,6 +24,9 @@ private slots:
     void on_btGenerate_clicked();
     void on_btExport_clicked();
 
+signals:
+    void generateReport(QString type, QDate start, QDate end);
+
 private:
     void setupChart(const QJsonObject &data);
     void setupTable(const QJsonObject &data);

@@ -51,10 +51,14 @@ void StatisticsView::showError(QString error)
     ui->stackedWidget->setCurrentIndex(0);
 }
 
+// 修改 on_btGenerate_clicked() 函数
 void StatisticsView::on_btGenerate_clicked()
 {
     QString reportType = ui->comboReportType->currentData().toString();
-    emit generateReport(reportType, ui->dateStart->date(), ui->dateEnd->date());
+    QDate startDate = ui->dateStart->date();
+    QDate endDate = ui->dateEnd->date();
+
+    emit generateReport(reportType, startDate, endDate);  // ← 发射信号
 }
 
 void StatisticsView::on_btExport_clicked()

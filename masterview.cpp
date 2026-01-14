@@ -2,6 +2,7 @@
 #include "ui_masterview.h"
 #include <QDebug>
 #include "idatabase.h"
+#include <QTimer>
 
 MasterView::MasterView(QWidget *parent)
     : QWidget(parent)
@@ -18,19 +19,30 @@ MasterView::MasterView(QWidget *parent)
     , medicineEditView(nullptr)
     , medicalRecordView(nullptr)
     , appointmentView(nullptr)
+    , statisticsThread(new StatisticsThread(this))
+    , statisticsView(nullptr)
 {
     ui->setupUi(this);
     this->setWindowFlag(Qt::FramelessWindowHint);
+
+    // 连接统计线程信号
+    connect(statisticsThread, &StatisticsThread::statisticsCompleted,
+            this, &MasterView::onStatisticsCompleted);
+    connect(statisticsThread, &StatisticsThread::statisticsFailed,
+            this, &MasterView::onStatisticsFailed);
 
     goLoginView();
 
     IDatabase::getInstance();
 }
 
-
-
 MasterView::~MasterView()
 {
+    // 确保统计线程安全退出
+    if (statisticsThread->isRunning()) {
+        statisticsThread->quit();
+        statisticsThread->wait();
+    }
     delete ui;
 }
 
@@ -54,6 +66,7 @@ void MasterView::goWelcomeView()
     connect(welcomeView, SIGNAL(goMedicineView()), this, SLOT(goMedicineView()));
     connect(welcomeView, SIGNAL(goMedicalRecordView()), this, SLOT(goMedicalRecordView()));
     connect(welcomeView, SIGNAL(goAppointmentView()), this, SLOT(goAppointmentView()));
+    connect(welcomeView, SIGNAL(goStatisticsView()), this, SLOT(goStatisticsView()));
 }
 
 void MasterView::goPatientView()
@@ -134,6 +147,36 @@ void MasterView::goAppointmentView()
     pushWidgetToStackView(appointmentView);
 }
 
+void MasterView::goStatisticsView()
+{
+    qDebug() << "goStatisticsView";
+    if (!statisticsView) {
+        statisticsView = new StatisticsView(this);
+        connect(statisticsView, &StatisticsView::generateReport,
+                [this](const QString &type, const QDate &start, const QDate &end) {
+                    statisticsThread->setReportType(type);
+                    statisticsThread->setDateRange(start, end);
+                    statisticsThread->start();
+                });
+
+    }
+    pushWidgetToStackView(statisticsView);
+}
+
+void MasterView::onStatisticsCompleted(QJsonObject result)
+{
+    if (statisticsView) {
+        statisticsView->displayReport(result);
+    }
+}
+
+void MasterView::onStatisticsFailed(QString error)
+{
+    if (statisticsView) {
+        statisticsView->showError(error);
+    }
+}
+
 void MasterView::goPreviousView()
 {
     int count = ui->stackedWidget->count();
@@ -162,6 +205,8 @@ void MasterView::on_btBack_clicked()
 
 void MasterView::on_stackedWidget_currentChanged(int arg1)
 {
+    Q_UNUSED(arg1);
+
     int count = ui->stackedWidget->count();
     ui->btBack->setEnabled(count > 1);
 
@@ -177,4 +222,9 @@ void MasterView::on_stackedWidget_currentChanged(int arg1)
 void MasterView::on_btLogout_clicked()
 {
     goPreviousView();
+}
+
+void MasterView::on_btStatistics_clicked()
+{
+    goStatisticsView();
 }
