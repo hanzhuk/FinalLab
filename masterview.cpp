@@ -38,7 +38,7 @@ MasterView::MasterView(QWidget *parent)
     , networkManager(new NetworkManager(this))
 {
     ui->setupUi(this);
-    //this->setWindowFlag(Qt::FramelessWindowHint);
+    this->setWindowFlag(Qt::FramelessWindowHint);
 
     // 连接统计线程信号
     connect(statisticsThread, &StatisticsThread::statisticsCompleted,
