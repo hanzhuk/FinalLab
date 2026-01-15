@@ -1,8 +1,7 @@
-﻿#ifndef MEDICALRECORDEDITVIEW_H
+#ifndef MEDICALRECORDEDITVIEW_H
 #define MEDICALRECORDEDITVIEW_H
 
 #include <QWidget>
-#include <QDataWidgetMapper>
 
 namespace Ui {
 class MedicalRecordEditView;
@@ -25,8 +24,6 @@ private slots:
 
 private:
     Ui::MedicalRecordEditView *ui;
-    QDataWidgetMapper *dataMapper;
 };
 
 #endif
-

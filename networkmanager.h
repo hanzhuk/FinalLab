@@ -30,6 +30,7 @@ signals:
     void syncFailed(QString error);
     void dataReceived(QJsonObject data);
     void backupProgress(int bytesSent, int totalBytes);
+    void medicineSynced(int count);
 
 private slots:
     void onReplyFinished(QNetworkReply *reply);

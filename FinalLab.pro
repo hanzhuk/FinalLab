@@ -19,6 +19,7 @@ SOURCES += \
     loginview.cpp \
     main.cpp \
     masterview.cpp \
+    medicalrecordeditview.cpp \
     medicalrecordview.cpp \
     medicineeditview.cpp \
     medicineview.cpp \
@@ -38,6 +39,7 @@ HEADERS += \
     idatabase.h \
     loginview.h \
     masterview.h \
+    medicalrecordeditview.h \
     medicalrecordview.h \
     medicineeditview.h \
     medicineview.h \
@@ -56,6 +58,7 @@ FORMS += \
     doctorview.ui \
     loginview.ui \
     masterview.ui \
+    medicalrecordeditview.ui \
     medicalrecordview.ui \
     medicineeditview.ui \
     medicineview.ui \

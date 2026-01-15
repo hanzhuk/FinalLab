@@ -13,7 +13,10 @@
 #include <QHBoxLayout>
 #include <QLabel>
 #include <QPushButton>
-#include <QFileDialog>
+#include <QDialog>
+#include <QTableView>
+#include <QStandardItemModel>
+#include <QSqlQuery>
 
 MasterView::MasterView(QWidget *parent)
     : QWidget(parent)
@@ -52,6 +55,10 @@ MasterView::MasterView(QWidget *parent)
             this, &MasterView::onSyncFailed);
     connect(networkManager, &NetworkManager::syncProgress,
             this, &MasterView::onSyncProgress);
+    connect(networkManager, &NetworkManager::dataReceived,
+            this, &MasterView::onDiagnosisData);
+    connect(networkManager, &NetworkManager::medicineSynced,
+            this, &MasterView::onMedicineSynced);
 
     goLoginView();
 
@@ -229,10 +236,6 @@ void MasterView::goNetworkSyncView()
     btnDiagnosis->setStyleSheet("QPushButton { padding: 10px; text-align: left; }");
     syncLayout->addWidget(btnDiagnosis);
 
-    QPushButton *btnBackup = new QPushButton("☁️ 远程备份数据库", syncGroup);
-    btnBackup->setStyleSheet("QPushButton { padding: 10px; text-align: left; }");
-    syncLayout->addWidget(btnBackup);
-
     QPushButton *btnCheckUpdate = new QPushButton("⬇️ 检查更新", syncGroup);
     btnCheckUpdate->setStyleSheet("QPushButton { padding: 10px; text-align: left; }");
     syncLayout->addWidget(btnCheckUpdate);
@@ -254,7 +257,6 @@ void MasterView::goNetworkSyncView()
 
     connect(btnMedicine, &QPushButton::clicked, networkManager, &NetworkManager::syncMedicineDatabase);
     connect(btnDiagnosis, &QPushButton::clicked, networkManager, &NetworkManager::syncDiagnosisReference);
-    connect(btnBackup, &QPushButton::clicked, networkManager, &NetworkManager::backupDatabase);
     connect(btnCheckUpdate, &QPushButton::clicked, networkManager, &NetworkManager::downloadUpdates);
 
     connect(networkManager, &NetworkManager::syncProgress, progressBar, &QProgressBar::setValue);
@@ -303,13 +305,78 @@ void MasterView::onSyncProgress(int percentage)
 void MasterView::onSyncCompleted(QString message)
 {
     qDebug() << "同步完成:" << message;
-    QMessageBox::information(this, "同步成功", message);
 }
 
 void MasterView::onSyncFailed(QString error)
 {
     qDebug() << "同步失败:" << error;
     QMessageBox::critical(this, "同步失败", error);
+}
+
+void MasterView::onDiagnosisData(QJsonObject data)
+{
+    QJsonArray arr = data.value("data").toArray();
+    QDialog dlg(this);
+    dlg.setWindowTitle("诊断参考（本地数据库）");
+    QVBoxLayout *layout = new QVBoxLayout(&dlg);
+    QTableView *table = new QTableView(&dlg);
+    QStandardItemModel *model = new QStandardItemModel(&dlg);
+    model->setHorizontalHeaderLabels({"代码", "名称"});
+    {
+        QSqlQuery q;
+        q.exec("SELECT CODE, NAME FROM diagnosis_reference ORDER BY CODE ASC");
+        while (q.next()) {
+            QList<QStandardItem*> items;
+            items << new QStandardItem(q.value(0).toString());
+            items << new QStandardItem(q.value(1).toString());
+            model->appendRow(items);
+        }
+    }
+    table->setModel(model);
+    table->setSelectionBehavior(QAbstractItemView::SelectRows);
+    table->setSelectionMode(QAbstractItemView::SingleSelection);
+    table->setEditTriggers(QAbstractItemView::NoEditTriggers);
+    table->setAlternatingRowColors(true);
+    layout->addWidget(table);
+    QPushButton *ok = new QPushButton("关闭", &dlg);
+    connect(ok, &QPushButton::clicked, &dlg, &QDialog::accept);
+    layout->addWidget(ok);
+    dlg.exec();
+}
+
+void MasterView::onMedicineSynced(int count)
+{
+    QDialog dlg(this);
+    dlg.setWindowTitle(QString("药品同步（本地数据库，%1 条）").arg(count));
+    QVBoxLayout *layout = new QVBoxLayout(&dlg);
+    QTableView *table = new QTableView(&dlg);
+    QStandardItemModel *model = new QStandardItemModel(&dlg);
+    model->setHorizontalHeaderLabels({"ID", "名称", "规格", "类型", "价格", "库存", "有效期"});
+    {
+        QSqlQuery q;
+        q.exec("SELECT ID, MED_NAME, MED_SPEC, MED_TYPE, PRICE, STOCK, EXPIRY_DATE FROM medicine ORDER BY ID ASC");
+        while (q.next()) {
+            QList<QStandardItem*> items;
+            items << new QStandardItem(q.value(0).toString());
+            items << new QStandardItem(q.value(1).toString());
+            items << new QStandardItem(q.value(2).toString());
+            items << new QStandardItem(q.value(3).toString());
+            items << new QStandardItem(q.value(4).toString());
+            items << new QStandardItem(q.value(5).toString());
+            items << new QStandardItem(q.value(6).toString());
+            model->appendRow(items);
+        }
+    }
+    table->setModel(model);
+    table->setSelectionBehavior(QAbstractItemView::SelectRows);
+    table->setSelectionMode(QAbstractItemView::SingleSelection);
+    table->setEditTriggers(QAbstractItemView::NoEditTriggers);
+    table->setAlternatingRowColors(true);
+    layout->addWidget(table);
+    QPushButton *ok = new QPushButton("关闭", &dlg);
+    connect(ok, &QPushButton::clicked, &dlg, &QDialog::accept);
+    layout->addWidget(ok);
+    dlg.exec();
 }
 
 void MasterView::on_btStatistics_clicked()

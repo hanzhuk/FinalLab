@@ -54,6 +54,13 @@ void IDatabase::ininDatabase()
 void IDatabase::initializeTables()
 {
     QMutexLocker locker(&databaseMutex);
+    QSqlQuery q(database);
+    q.exec("CREATE TABLE IF NOT EXISTS diagnosis_reference ("
+           "CODE TEXT PRIMARY KEY,"
+           "NAME TEXT,"
+           "CATEGORY TEXT,"
+           "UPDATEDTIMESTAMP TEXT"
+           ")");
     qDebug() << "数据库初始化检查完成";
 }
 

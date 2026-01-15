@@ -62,6 +62,8 @@ private slots:
     void onSyncProgress(int percentage);
     void onSyncCompleted(QString message);
     void onSyncFailed(QString error);
+    void onDiagnosisData(QJsonObject data);
+    void onMedicineSynced(int count);
 
 private:
     void pushWidgetToStackView(QWidget *widget);

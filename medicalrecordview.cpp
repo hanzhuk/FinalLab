@@ -85,6 +85,5 @@ void MedicalRecordView::on_btRefresh_clicked()
 
 void MedicalRecordView::on_btAdd_clicked()
 {
-    int row = IDatabase::getInstance().addNewMedicalRecord();
-    emit goMedicalRecordEditView(row);
+    emit goMedicalRecordEditView(-1);
 }

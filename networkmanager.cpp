@@ -11,7 +11,7 @@ NetworkManager::NetworkManager(QObject *parent)
     , m_networkManager(new QNetworkAccessManager(this))
     , m_currentReply(nullptr)
 {
-    m_serverUrl = "https://api.medicalsync.com/v1";
+    m_serverUrl = "http://127.0.0.1:8000";
 
     connect(m_networkManager, &QNetworkAccessManager::finished,
             this, &NetworkManager::onReplyFinished);
@@ -65,7 +65,7 @@ void NetworkManager::backupDatabase()
     m_currentOperation = "backup";
     emit syncStarted("正在备份数据库...");
 
-    QString dbPath = QCoreApplication::applicationDirPath() + "/data/community_medical.db";
+    QString dbPath = "G:/Qt_file/community_medical.db";
     QFile dbFile(dbPath);
 
     if (!dbFile.exists()) {
@@ -101,6 +101,8 @@ void NetworkManager::backupDatabase()
     connect(m_currentReply, &QNetworkReply::uploadProgress,
             this, &NetworkManager::onUploadProgress);
 }
+
+ 
 
 void NetworkManager::downloadUpdates()
 {
@@ -167,35 +169,73 @@ void NetworkManager::onReplyFinished(QNetworkReply *reply)
 void NetworkManager::handleMedicineSyncResponse(const QJsonObject &response)
 {
     QJsonArray medicines = response["data"].toArray();
-    IDatabase &db = IDatabase::getInstance();
-
-    emit syncProgress(50);
-
-    for (const QJsonValue &value : medicines) {
-        QJsonObject medicine = value.toObject();
-
-        QSqlQuery query;
-        query.prepare("INSERT OR REPLACE INTO medicine (ID, MED_NAME, MED_SPEC, MED_TYPE, PRICE, STOCK, EXPIRY_DATE) "
-                      "VALUES (:id, :name, :spec, :type, :price, :stock, :expiry)");
-        query.bindValue(":id", medicine["id"].toString());
-        query.bindValue(":name", medicine["name"].toString());
-        query.bindValue(":spec", medicine["spec"].toString());
-        query.bindValue(":type", medicine["type"].toString());
-        query.bindValue(":price", medicine["price"].toDouble());
-        query.bindValue(":stock", medicine["stock"].toInt());
-        query.bindValue(":expiry", medicine["expiryDate"].toString());
-
-        if (!query.exec()) {
-            qDebug() << "药品同步失败:" << query.lastError().text();
+    QString connName = QString("medicine_sync_%1").arg(reinterpret_cast<quintptr>(QThread::currentThreadId()));
+    {
+        QSqlDatabase db = QSqlDatabase::addDatabase("QSQLITE", connName);
+        db.setDatabaseName("G:/Qt_file/community_medical.db");
+        if (!db.open()) {
+            emit syncFailed(QString("数据库打开失败: %1").arg(db.lastError().text()));
+            QSqlDatabase::removeDatabase(connName);
+            return;
         }
-    }
 
-    db.medicineTabModel->select();
+        QSqlQuery begin(db);
+        begin.exec("BEGIN");
+
+        for (const QJsonValue &value : medicines) {
+            QJsonObject medicine = value.toObject();
+
+            QSqlQuery query(db);
+            query.prepare("INSERT OR REPLACE INTO medicine (ID, MED_NAME, MED_SPEC, MED_TYPE, PRICE, STOCK, EXPIRY_DATE) "
+                          "VALUES (:id, :name, :spec, :type, :price, :stock, :expiry)");
+            query.bindValue(":id", medicine["id"].toString());
+            query.bindValue(":name", medicine["name"].toString());
+            query.bindValue(":spec", medicine["spec"].toString());
+            query.bindValue(":type", medicine["type"].toString());
+            query.bindValue(":price", medicine["price"].toDouble());
+            query.bindValue(":stock", medicine["stock"].toInt());
+            query.bindValue(":expiry", medicine["expiryDate"].toString());
+
+            if (!query.exec()) {
+                emit syncFailed(QString("药品同步失败: %1").arg(query.lastError().text()));
+                QSqlQuery rollback(db);
+                rollback.exec("ROLLBACK");
+                db.close();
+                QSqlDatabase::removeDatabase(connName);
+                return;
+            }
+        }
+
+        QSqlQuery commit(db);
+        commit.exec("COMMIT");
+        db.close();
+    }
+    QSqlDatabase::removeDatabase(connName);
+
+    IDatabase &dbi = IDatabase::getInstance();
+    if (!dbi.medicineTabModel) {
+        if (!dbi.initMedicineModel()) {
+            emit syncFailed("药品模型初始化失败");
+        }
+    } else {
+        dbi.medicineTabModel->select();
+    }
+    emit medicineSynced(medicines.size());
 }
 
 void NetworkManager::handleDiagnosisResponse(const QJsonObject &response)
 {
     QJsonArray diagnoses = response["data"].toArray();
+    for (const QJsonValue &value : diagnoses) {
+        QJsonObject d = value.toObject();
+        QSqlQuery q;
+        q.prepare("INSERT OR REPLACE INTO diagnosis_reference (CODE, NAME, UPDATEDTIMESTAMP) "
+                  "VALUES (:code, :name, :ts)");
+        q.bindValue(":code", d["code"].toString());
+        q.bindValue(":name", d["name"].toString());
+        q.bindValue(":ts", QDateTime::currentDateTime().toString("yyyy-MM-dd hh:mm:ss"));
+        q.exec();
+    }
     emit dataReceived(response);
 }
 
