@@ -66,34 +66,25 @@ void NetworkManager::backupDatabase()
     emit syncStarted("正在备份数据库...");
 
     QString dbPath = "G:/Qt_file/community_medical.db";
-    QFile dbFile(dbPath);
-
-    if (!dbFile.exists()) {
-        emit syncFailed("数据库文件不存在: " + dbPath);
+    QFile *file = new QFile(dbPath);
+    if (!file->open(QIODevice::ReadOnly)) {
+        emit syncFailed(QString("无法打开数据库文件进行备份: %1").arg(dbPath));
+        delete file;
         return;
-    }
-
-    if (!dbFile.open(QIODevice::ReadOnly)) {
-        emit syncFailed("无法打开数据库文件: " + dbFile.errorString());
-        return;
-    }
-
-    QUrl url(m_serverUrl + "/backup/upload");
-    QNetworkRequest request(url);
-
-    if (!m_authToken.isEmpty()) {
-        request.setRawHeader("Authorization", "Bearer " + m_authToken.toUtf8());
     }
 
     QHttpMultiPart *multiPart = new QHttpMultiPart(QHttpMultiPart::FormDataType);
-
     QHttpPart filePart;
-    filePart.setHeader(QNetworkRequest::ContentTypeHeader, QVariant("application/x-sqlite3"));
-    filePart.setHeader(QNetworkRequest::ContentDispositionHeader,
-                       QVariant("form-data; name=\"database\"; filename=\"community_medical.db\""));
-    filePart.setBodyDevice(&dbFile);
-
+    filePart.setHeader(QNetworkRequest::ContentDispositionHeader, QVariant("form-data; name=\"file\"; filename=\"community_medical.db\""));
+    filePart.setBodyDevice(file);
+    file->setParent(multiPart);
     multiPart->append(filePart);
+
+    QUrl url(m_serverUrl + "/backup/upload");
+    QNetworkRequest request(url);
+    if (!m_authToken.isEmpty()) {
+        request.setRawHeader("Authorization", "Bearer " + m_authToken.toUtf8());
+    }
 
     m_currentReply = m_networkManager->post(request, multiPart);
     multiPart->setParent(m_currentReply);
@@ -101,7 +92,6 @@ void NetworkManager::backupDatabase()
     connect(m_currentReply, &QNetworkReply::uploadProgress,
             this, &NetworkManager::onUploadProgress);
 }
-
 
 
 
@@ -241,19 +231,6 @@ void NetworkManager::handleDiagnosisResponse(const QJsonObject &response)
     emit dataReceived(response);
 }
 
-void NetworkManager::handleBackupResponse(const QJsonObject &response)
-{
-    QString backupId = response["backupId"].toString();
-    QDateTime backupTime = QDateTime::fromString(response["timestamp"].toString(), Qt::ISODate);
-
-    // 保存备份记录到数据库
-    QSqlQuery query;
-    query.prepare("INSERT INTO backup_history (BACKUP_ID, TIMESTAMP, STATUS) VALUES (:id, :time, 'success')");
-    query.bindValue(":id", backupId);
-    query.bindValue(":time", backupTime.toString("yyyy-MM-dd hh:mm:ss"));
-    query.exec();
-}
-
 void NetworkManager::handleUpdateResponse(const QJsonObject &response)
 {
     bool hasUpdate = response["hasUpdate"].toBool();
@@ -265,12 +242,18 @@ void NetworkManager::handleUpdateResponse(const QJsonObject &response)
     }
 }
 
+void NetworkManager::handleBackupResponse(const QJsonObject &response)
+{
+    emit dataReceived(response);
+}
 void NetworkManager::onUploadProgress(qint64 bytesSent, qint64 totalBytes)
 {
     if (totalBytes > 0) {
         int progress = static_cast<int>((bytesSent * 100) / totalBytes);
         emit syncProgress(progress);
-        emit backupProgress(bytesSent, totalBytes);
+        if (m_currentOperation == "backup") {
+            emit backupProgress(static_cast<int>(bytesSent), static_cast<int>(totalBytes));
+        }
     }
 }
 
