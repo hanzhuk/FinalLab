@@ -28,9 +28,9 @@ AppointmentView::AppointmentView(QWidget *parent)
     ui->tableView->setEditTriggers(QAbstractItemView::NoEditTriggers);
     ui->tableView->setAlternatingRowColors(true);
 
-    m_loadingLabel = new QLabel("正在加载预约数据...", this);
+    m_loadingLabel = new QLabel("加载中...", this);
     m_loadingLabel->setAlignment(Qt::AlignCenter);
-    m_loadingLabel->setStyleSheet("font-size: 18px; color: #4A90E2; font-weight: bold;");
+    m_loadingLabel->setStyleSheet("font-size: 18px;  font-weight: bold;");
     m_loadingLabel->setVisible(true);
 
     ui->tableView->setVisible(false);

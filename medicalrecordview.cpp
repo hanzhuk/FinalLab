@@ -28,9 +28,9 @@ MedicalRecordView::MedicalRecordView(QWidget *parent)
     ui->tableView->setAlternatingRowColors(true);
 
     // 创建加载提示标签
-    m_loadingLabel = new QLabel("正在加载数据，请稍候...", this);
+    m_loadingLabel = new QLabel("加载中...", this);
     m_loadingLabel->setAlignment(Qt::AlignCenter);
-    m_loadingLabel->setStyleSheet("font-size: 18px; color: #4A90E2; font-weight: bold;");
+    m_loadingLabel->setStyleSheet("font-size: 18px;  font-weight: bold;");
     m_loadingLabel->setVisible(true);
 
     // 隐藏表格直到数据加载完成
